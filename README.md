@@ -4,7 +4,7 @@ Statistic Indicator is a collection of 50+ stock analysis indicators that are be
 
 ## How to use ?
 
-**Step 1 :** Download the files. keep the indicators.py file in your working directory ( i.e. the directory in which you are going to write your program ). 
+**Step 1 :** Download the files. keep the indicators.py file in your working directory ( i.e. the directory in which you are going to write your program ) </br>
 **Step 2 :** import the file or the function you would like to use in your python file as :
 >import indicators
 ##### OR
