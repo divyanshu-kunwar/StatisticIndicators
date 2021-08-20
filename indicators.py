@@ -7,9 +7,9 @@ import math
 
 # All the indicators are defined and arranged in Alphabetical order
 
-# ---------------------> A <------------------------
+# ------------------> A <------------------------
 
-# Average True Range (ATR)
+# [0] __ Average True Range (ATR)
 # Moving Average of True Range(TR)
 def atr(data: DataFrame, period: int = 14) -> Series:
         TR = tr(data)
@@ -20,9 +20,9 @@ def atr(data: DataFrame, period: int = 14) -> Series:
         )
 
 
-# ---------------------> D <------------------------
+# ------------------> D <------------------------
 
-# Double Exponential Moving Average (DEMA)
+# [0] __ Double Exponential Moving Average (DEMA)
 # 2 * EWMA - ewm(EWMA)
 def dema(data,period: int = 10,column: str ='close',adjust: bool = True) -> Series:
     DEMA = (
@@ -34,9 +34,9 @@ def dema(data,period: int = 10,column: str ='close',adjust: bool = True) -> Seri
     )
 
 
-# ---------------------> E <------------------------
+# ------------------> E <------------------------
 
-# Exponential Weighted Moving Average (EWMA) or Exponential Moving Average(EMA)
+# [0] __ Exponential Weighted Moving Average (EWMA) or Exponential Moving Average(EMA)
 # Exponential average of prev n day prices
 def ema(data,period: int = 10,column: str ='close',adjust: bool = True) -> Series:
     return pd.Series(
@@ -44,7 +44,7 @@ def ema(data,period: int = 10,column: str ='close',adjust: bool = True) -> Serie
         name = f'{period}_EMA'
     )
 
-# Kaufman Efficiency indicator (KER) or (ER)
+# [0] __ Kaufman Efficiency indicator (KER) or (ER)
 # change in price / volatility Here change and volatility are absolute
 def er(data,period: int = 10,column: str ='close') -> Series:
     change = data[column].diff(period).abs()
@@ -53,7 +53,7 @@ def er(data,period: int = 10,column: str ='close') -> Series:
         name=f'{period}_ER'
     )
 
-# Elastic Volume Weighted Moving Average (EVWMA)
+# [0] __ Elastic Volume Weighted Moving Average (EVWMA)
 # x is ((volume sum for n period) - volume ) divided by (volume sum for n period)
 # y is volume * close / (volume sum for n period)
 def evwma(data, period: int = 20) -> Series:
@@ -75,7 +75,7 @@ def evwma(data, period: int = 20) -> Series:
         name=f'{period}_EVWMA'
     )
 
-# Elastic Volume Weighted Moving average convergence divergence (EV_MACD)
+# [0] __ Elastic Volume Weighted Moving average convergence divergence (EV_MACD)
 # MACD calculation on basis of Elastic Volume Weighted Moving average (EVWMA)
 def ev_macd(data: DataFrame,period_fast: int = 20,period_slow: int = 40,
             signal: int = 9,adjust: bool = True,) -> DataFrame:
@@ -92,9 +92,9 @@ def ev_macd(data: DataFrame,period_fast: int = 20,period_slow: int = 40,
         return pd.concat([MACD, MACD_signal], axis=1)
 
 
-# ---------------------> F <------------------------
+# ------------------> F <------------------------
 
-# Fractal Adaptive Moving Average (FRAMA)
+# [0] __ Fractal Adaptive Moving Average (FRAMA)
 # TODO
 def FRAMA(data: DataFrame, period: int = 16, batch: int=10) -> Series:
 
@@ -130,9 +130,9 @@ def FRAMA(data: DataFrame, period: int = 16, batch: int=10) -> Series:
         )
 
 
-# ---------------------> H <------------------------
+# ------------------> H <------------------------
 
-# Hull Moving Average (HMA)
+# [0] __ Hull Moving Average (HMA)
 # wma of change in wma where change in wma is 2 * (wma half period) - (wma full period) 
 def hma(data, period: int = 16) -> Series:
     
@@ -147,9 +147,9 @@ def hma(data, period: int = 16) -> Series:
     return pd.Series(hma, name=f'{period}_HMA')
 
 
-# ---------------------> K <------------------------
+# ------------------> K <------------------------
 
-# Kaufman's Adaptive Moving Average (KAMA)
+# [0] __ Kaufman's Adaptive Moving Average (KAMA)
 # first KAMA is SMA
 # Current KAMA = Previous KAMA + smoothing_constant * (Price - Previous KAMA)
 
@@ -183,9 +183,9 @@ def kama(data,er_: int = 10,ema_fast: int = 2,
     return sma['KAMA']
 
 
-# ---------------------> M <------------------------
+# ------------------> M <------------------------
 
-# Moving average convergence divergence (MACD)
+# [0] __ Moving average convergence divergence (MACD)
 # MACD is Difference of ema fast and ema slow
 # Here fast period is 12 and slow period is 26
 # MACD Signal is ewm of MACD
@@ -212,14 +212,14 @@ def macd(data,period_fast: int = 12,period_slow: int = 26,
         axis=1
     )
 
-# Market momentum (MOM)
+# [0] __ Market momentum (MOM)
 def mom(data: DataFrame, period: int = 10, column: str = "close") -> Series:
 
         return pd.Series(data[column].diff(period), 
                          name=f'{period}_MOM'
                         )
 
-# Moving Volume Weighted Average Price (MVWAP)
+# [0] __ Moving Volume Weighted Average Price (MVWAP)
 # SMA of (close * volume ) divided by SMA of volume
 def mvwap(data: DataFrame, period:int = 9) -> Series:
         data["cv"] =(data["close"] * data["volume"])
@@ -228,11 +228,11 @@ def mvwap(data: DataFrame, period:int = 9) -> Series:
             name="MVWAP."
         )
 
-# ---------------------> P <------------------------
+# ------------------> P <------------------------
 
-# ---------------|| Pivot ||------------------------
+# ------------|| Pivot ||------------------------
 
-# Pivot Camarilla
+# [0] __ Pivot Camarilla
 # TODO
 def pivot_camarilla(data: DataFrame) -> DataFrame:
     df_ = data.shift()
@@ -265,7 +265,7 @@ def pivot_camarilla(data: DataFrame) -> DataFrame:
             axis=1,
         )
 
-# Pivot Classic
+# [0] __ Pivot Classic
 # TODO
 def pivot_classic(data: DataFrame) -> DataFrame:
     df_ = data.shift()
@@ -299,7 +299,7 @@ def pivot_classic(data: DataFrame) -> DataFrame:
             axis=1,
         )
 
-# Pivot Demark
+# [0] __ Pivot Demark
 # TODO
 def pivot_demark(data: DataFrame) -> DataFrame:
     df_ = data.shift()
@@ -322,7 +322,7 @@ def pivot_demark(data: DataFrame) -> DataFrame:
     data_['r1']=r1
     return data_
 
-# Pivot Fibonacci
+# [0] __ Pivot Fibonacci
 # TODO
 def pivot_fibonacci(data: DataFrame) -> DataFrame:
     df_ = data.shift()
@@ -355,7 +355,7 @@ def pivot_fibonacci(data: DataFrame) -> DataFrame:
             axis=1,
         )
 
-# Pivot Traditional
+# [0] __ Pivot Traditional
 # TODO
 def pivot_traditional(data: DataFrame) -> DataFrame:
     df_ = data.shift()
@@ -390,7 +390,7 @@ def pivot_traditional(data: DataFrame) -> DataFrame:
             axis=1,
         )
 
-# Pivot Woodie
+# [0] __ Pivot Woodie
 # TODO
 def pivot_woodie(data: DataFrame) -> DataFrame:
     df_ = data.shift()
@@ -423,7 +423,7 @@ def pivot_woodie(data: DataFrame) -> DataFrame:
             axis=1,
         )
 
-# PPO
+# [0] __ PPO
 # TODO
 def ppo(data: DataFrame,period_fast: int = 12,period_slow: int = 26,
     signal: int = 9,column: str = "close",
@@ -445,9 +445,9 @@ def ppo(data: DataFrame,period_fast: int = 12,period_slow: int = 26,
 
     return pd.concat([PPO, PPO_signal, PPO_histo], axis=1)
 
-# ---------------------> R <------------------------
+# ------------------> R <------------------------
 
-# Relative Strength Index (RSI)
+# [0] __ Relative Strength Index (RSI)
 # EMA of up and down gives gain and loss
 # Relative Strength Index is gain / loss
 def rsi(data: DataFrame, period: int = 14,column: str = "close",
@@ -464,7 +464,7 @@ def rsi(data: DataFrame, period: int = 14,column: str = "close",
                      name=f'{period} period RSI'
                     )
 
-# Rate of Change (ROC)
+# [0] __ Rate of Change (ROC)
 def roc(data: DataFrame, period: int = 12, column: str = "close") -> Series:
     return pd.Series(
         (data[column].diff(period) / data[column].shift(period)) * 100, 
@@ -472,9 +472,9 @@ def roc(data: DataFrame, period: int = 12, column: str = "close") -> Series:
     )
 
 
-# ---------------------> S <------------------------
+# ------------------> S <------------------------
 
-# Simple moving average (SMA) or moving average (MA)
+# [0] __ Simple moving average (SMA) or moving average (MA)
 # Average of prev n day prices
 def sma(data,period: int = 10,column: str ='close') -> Series:
     return pd.Series(
@@ -482,7 +482,7 @@ def sma(data,period: int = 10,column: str ='close') -> Series:
         name = f'{period}_SMA'
     )
 
-# Simple moving median (SMM) or moving median (MM)
+# [0] __ Simple moving median (SMM) or moving median (MM)
 # median of prev n day prices
 def smm(data,period: int = 10,column: str ='close') -> Series:
     return pd.Series(
@@ -490,7 +490,7 @@ def smm(data,period: int = 10,column: str ='close') -> Series:
         name = f'{period}_SMM'
     )
 
-# Simple smoothed moving average (SSMA) or smoothed moving average()
+# [0] __ Simple smoothed moving average (SSMA) or smoothed moving average()
 # smoothed (exponential + simple) average of prev n day prices
 def ssma(data,period: int = 10,column: str ='close',adjust: bool = True) -> Series:
     return pd.Series(
@@ -500,9 +500,9 @@ def ssma(data,period: int = 10,column: str ='close',adjust: bool = True) -> Seri
     )
 
 
-# ---------------------> T <------------------------
+# ------------------> T <------------------------
 
-# Triple Exponential Moving Average (TEMA)
+# [0] __ Triple Exponential Moving Average (TEMA)
 # 3 * EWMA - ewm(ewm(ewm(data))) i.e. 3 * ewma - ewm of ewm of ewm of data
 def tema(data,period: int = 10,column: str ='close',adjust: bool = True) -> Series:
     triple_ema = 3 * ema(data,period)
@@ -518,7 +518,7 @@ def tema(data,period: int = 10,column: str ='close',adjust: bool = True) -> Seri
         name = f'{period}_TEMA'
     )
 
-# Typical Price (TP)
+# [0] __ Typical Price (TP)
 # average of high low close price
 def tp(data: DataFrame) -> Series:
         return pd.Series(
@@ -526,7 +526,7 @@ def tp(data: DataFrame) -> Series:
              name="TP"
         )
 
-# True Range (TR)
+# [0] __ True Range (TR)
 # maximum of three price ranges i.e TR1, TR2, TR2
 def tr(data: DataFrame) -> Series:
         TR1 = pd.Series(data["high"] - data["low"]).abs()
@@ -539,7 +539,7 @@ def tr(data: DataFrame) -> Series:
                         )
 
 
-# Triangular Moving Average (TRIMA) or (TMA)
+# [0] __ Triangular Moving Average (TRIMA) or (TMA)
 # sum of SMA / period
 def trima(data,period: int = 10,adjust: bool = True) -> Series:
     SMA = sma(data,period).rolling(window=period , min_periods=1).sum()
@@ -548,7 +548,7 @@ def trima(data,period: int = 10,adjust: bool = True) -> Series:
         name = f'{period}_TRIMA'
     )
 
-# Triple Exponential Average (TRIX)
+# [0] __ Triple Exponential Average (TRIX)
 # 1000*(m - mprev) / m Here m = ema(ema(ema(data))) or m = ema of ema of ema of data 
 
 def trix(data,period: int = 10,adjust: bool = True,column: str ='close') -> Series:
@@ -562,9 +562,9 @@ def trix(data,period: int = 10,adjust: bool = True,column: str ='close') -> Seri
         name = f'{period}_TRIX'
     )
 
-# ---------------------> V <------------------------
+# ------------------> V <------------------------
 
-# Volume Adjusted Moving Average (VAMA)
+# [0] __ Volume Adjusted Moving Average (VAMA)
 # volume ratio = (price * volume) / mean of (price * volume) for n period
 # cummulative sum = sum of (volume ratio * data) for n period
 # cummulative Division = sum of (volume ratio) for n period
@@ -580,7 +580,7 @@ def vama(data,period: int = 10,column: str ='close') -> Series:
         name=f'{period}_VAMA'
     )
 
-# Volume Weighted Average Price (VWAP)
+# [0] __ Volume Weighted Average Price (VWAP)
 # cummulative sum of (data) divided by cummulative sum of volume
 def vwap(data: DataFrame) -> Series:
         return pd.Series(
@@ -588,7 +588,7 @@ def vwap(data: DataFrame) -> Series:
             name="VWAP",
         )
 
-# Volume Weighted Moving average convergence divergence(VWMACD)
+# [0] __ Volume Weighted Moving average convergence divergence(VWMACD)
 # difference vwma of fast and slow
 def vw_macd(data: DataFrame,period_fast: int = 12,period_slow: int = 26,
         signal: int = 9,column: str = "close",
@@ -606,7 +606,7 @@ def vw_macd(data: DataFrame,period_fast: int = 12,period_slow: int = 26,
 
     return pd.concat([MACD, MACD_signal], axis=1)
 
-# Volume Weighted Moving Average (VWMA)
+# [0] __ Volume Weighted Moving Average (VWMA)
 # sum of (data * volume) for n period divided by
 # sum of volume for n period
 def vwma(data: DataFrame,period: int = 20,column: str = "close",
@@ -619,9 +619,9 @@ def vwma(data: DataFrame,period: int = 20,column: str = "close",
     return pd.Series(cv/v,name='VWMA')
 
 
-# ---------------------> W <------------------------
+# ------------------> W <------------------------
 
-# Weighted Moving Average (WMA)
+# [0] __ Weighted Moving Average (WMA)
 # add weight to moving average
 def wma(data, period: int = 9, 
         column: str = "close") -> Series:
@@ -642,9 +642,9 @@ def wma(data, period: int = 9,
     )
 
 
-# ---------------------> Z <------------------------
+# ------------------> Z <------------------------
 
-# Zero Lag Exponential Moving Average (ZLEMA)
+# [0] __ Zero Lag Exponential Moving Average (ZLEMA)
 # ema is sum of data and difference of data and data_lag
 # ZLEMA is ewm of ema calculated
 def zlema(data,period: int = 26, adjust: bool = True,
