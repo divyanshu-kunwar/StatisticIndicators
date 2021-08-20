@@ -1,4 +1,4 @@
-# import all the required files that is numpy , pandas and math library
+# import all the required files i.e. numpy , pandas and math library
 import numpy as np
 import pandas as pd
 from pandas import DataFrame , Series
@@ -6,6 +6,19 @@ import math
 
 
 # All the indicators are defined and arranged in Alphabetical order
+
+# ---------------------> A <------------------------
+
+# Average True Range (ATR)
+# Moving Average of True Range(TR)
+def atr(data: DataFrame, period: int = 14) -> Series:
+        TR = tr(data)
+        return pd.Series(
+            TR.rolling(center=False, window=period, 
+                       min_periods=1).mean(),
+            name=f'{period}  ATR'
+        )
+
 
 # ---------------------> D <------------------------
 
@@ -62,11 +75,27 @@ def evwma(data, period: int = 20) -> Series:
         name=f'{period}_EVWMA'
     )
 
+# Elastic Volume Weighted Moving average convergence divergence (EV_MACD)
+# MACD calculation on basis of Elastic Volume Weighted Moving average (EVWMA)
+def ev_macd(data: DataFrame,period_fast: int = 20,period_slow: int = 40,
+            signal: int = 9,adjust: bool = True,) -> DataFrame:
+       
+        evwma_slow = evwma(data, period_slow)
+
+        evwma_fast = evwma(data, period_fast)
+
+        MACD = pd.Series(evwma_fast - evwma_slow, name="EV MACD")
+        MACD_signal = pd.Series(
+            MACD.ewm(ignore_na=False, span=signal, adjust=adjust).mean(), name="SIGNAL"
+        )
+
+        return pd.concat([MACD, MACD_signal], axis=1)
+
 
 # ---------------------> F <------------------------
 
 # Fractal Adaptive Moving Average (FRAMA)
-# TODO 
+# TODO
 def FRAMA(data: DataFrame, period: int = 16, batch: int=10) -> Series:
 
         assert period % 2 == 0, print("FRAMA period must be even")
@@ -157,7 +186,9 @@ def kama(data,er_: int = 10,ema_fast: int = 2,
 # ---------------------> M <------------------------
 
 # Moving average convergence divergence (MACD)
-# TODO
+# MACD is Difference of ema fast and ema slow
+# Here fast period is 12 and slow period is 26
+# MACD Signal is ewm of MACD
 def macd(data,period_fast: int = 12,period_slow: int = 26,
         signal: int = 9,column: str = "close",adjust: bool = True
     ) -> DataFrame:
@@ -181,6 +212,13 @@ def macd(data,period_fast: int = 12,period_slow: int = 26,
         axis=1
     )
 
+# Market momentum (MOM)
+def mom(data: DataFrame, period: int = 10, column: str = "close") -> Series:
+
+        return pd.Series(data[column].diff(period), 
+                         name=f'{period}_MOM'
+                        )
+
 # Moving Volume Weighted Average Price (MVWAP)
 # SMA of (close * volume ) divided by SMA of volume
 def mvwap(data: DataFrame, period:int = 9) -> Series:
@@ -189,6 +227,249 @@ def mvwap(data: DataFrame, period:int = 9) -> Series:
             (sma(data,period = period,column = "cv")/sma(data,period=period,column="volume")),
             name="MVWAP."
         )
+
+# ---------------------> P <------------------------
+
+# ---------------|| Pivot ||------------------------
+
+# Pivot Camarilla
+# TODO
+def pivot_camarilla(data: DataFrame) -> DataFrame:
+    df_ = data.shift()
+    pivot = pd.Series(tp(df_), name="pivot")
+    
+    s1 =  df_['close']+(1.1*(df_['high']-df_['low'])/12)
+    s2 = df_['close']-(1.1*(df_['high']-df_['low'])/6)
+    s3 = df_['close']-(1.1*(df_['high']-df_['low'])/4)
+    s4 =df_['close']-(1.1*(df_['high']-df_['low'])/2)
+   
+    
+
+    r1 = df_['close']+(1.1*(df_['high']-df_['low'])/12)
+    r2 = df_['close']+(1.1*(df_['high']-df_['low'])/6)
+    r3 =df_['close']+(1.1*(df_['high']-df_['low'])/4)
+    r4 = df_['close']+(1.1*(df_['high']-df_['low'])/2)
+   
+    return pd.concat(
+            [
+                pivot,
+                pd.Series(s1, name="s1"),
+                pd.Series(s2, name="s2"),
+                pd.Series(s3, name="s3"),
+                pd.Series(s4, name="s4"),
+                pd.Series(r1, name="r1"),
+                pd.Series(r2, name="r2"),
+                pd.Series(r3, name="r3"),
+                pd.Series(r4, name="r4"),
+                            ],
+            axis=1,
+        )
+
+# Pivot Classic
+# TODO
+def pivot_classic(data: DataFrame) -> DataFrame:
+    df_ = data.shift()
+    pivot = pd.Series(tp(df_), name="pivot")
+    
+    s1 = (pivot * 2) - df_["high"]
+    s2 = pivot - (df_["high"] - df_["low"])
+    s3 = pivot - 2*(df_["high"] - df_["low"])
+    s4 = pivot - 3*(df_["high"] - df_["low"])
+    
+    
+
+    r1 = (pivot * 2) - df_["low"]
+    r2 = pivot + (df_["high"] - df_["low"])
+    r3 = pivot + 2*(df_["high"] - df_["low"])
+    r4 = pivot + 3*(df_["high"] - df_["low"])
+   
+    return pd.concat(
+            [
+                pivot,
+                pd.Series(s1, name="s1"),
+                pd.Series(s2, name="s2"),
+                pd.Series(s3, name="s3"),
+                pd.Series(s4, name="s4"),
+                pd.Series(r1, name="r1"),
+                pd.Series(r2, name="r2"),
+                pd.Series(r3, name="r3"),
+                pd.Series(r4, name="r4"),
+               
+            ],
+            axis=1,
+        )
+
+# Pivot Demark
+# TODO
+def pivot_demark(data: DataFrame) -> DataFrame:
+    df_ = data.shift()
+    pivot,s1,r1=[],[],[]
+    for i in range(len(df_)):
+        if df_['open'][i]==df_['close'][i]:
+            x=df_['high'][i]+df_['low'][i]+2*df_['close'][i]
+        elif df_['close'][i]>df_['open'][i]:
+            x=2*df_['high'][i]+df_['low'][i]+df_['close'][i]
+        else:
+            x=df_['high'][i]+2*df_['low'][i]+df_['close'][i]
+   
+        pivot.append(x/4)
+        s1.append(x/2 - df_["high"][i])
+
+        r1.append(x/2 - df_["low"][i])
+    
+    data_ = pd.DataFrame(pivot,columns=['pivot'])
+    data_['s1']=s1
+    data_['r1']=r1
+    return data_
+
+# Pivot Fibonacci
+# TODO
+def pivot_fibonacci(data: DataFrame) -> DataFrame:
+    df_ = data.shift()
+    pivot = pd.Series(tp(df_), name="pivot")
+    
+    s1 = pivot - ((df_["high"] - df_["low"])*0.382)
+    s2 = pivot - ((df_["high"] - df_["low"])*0.618)
+    s3 = pivot - (df_["high"] - df_["low"])
+    s4 = pivot + ((df_["high"] - df_["low"])*1.382)
+   
+    
+
+    r1 = pivot + ((df_["high"] - df_["low"])*0.382)
+    r2 = pivot + ((df_["high"] - df_["low"])*0.618)
+    r3 =pivot + (df_["high"] - df_["low"])
+    r4 = pivot + (df_["high"] - df_["low"])*1.382
+   
+    return pd.concat(
+            [
+                pivot,
+                pd.Series(s1, name="s1"),
+                pd.Series(s2, name="s2"),
+                pd.Series(s3, name="s3"),
+                pd.Series(s4, name="s4"),
+                pd.Series(r1, name="r1"),
+                pd.Series(r2, name="r2"),
+                pd.Series(r3, name="r3"),
+                pd.Series(r4, name="r4"),
+                            ],
+            axis=1,
+        )
+
+# Pivot Traditional
+# TODO
+def pivot_traditional(data: DataFrame) -> DataFrame:
+    df_ = data.shift()
+    pivot = pd.Series(tp(df_), name="pivot")
+    
+    s1 = (pivot * 2) - df_["high"]
+    s2 = pivot - (df_["high"] - df_["low"])
+    s3 = df_["low"] - (2 * (df_["high"] - pivot))
+    s4 = df_["low"] - (3 * (df_["high"] - pivot))
+    s5 = df_["low"] - (4 * (df_["high"] - pivot))
+    
+
+    r1 = (pivot * 2) - df_["low"]
+    r2 = pivot + (df_["high"] - df_["low"])
+    r3 = df_["high"] + (2 * (pivot - df_["low"]))
+    r4 = df_["high"] + (3 * (pivot - df_["low"]))
+    r5 = df_["high"] + (4 * (pivot - df_["low"]))
+    return pd.concat(
+            [
+                pivot,
+                pd.Series(s1, name="s1"),
+                pd.Series(s2, name="s2"),
+                pd.Series(s3, name="s3"),
+                pd.Series(s4, name="s4"),
+                pd.Series(s5, name="s5"),
+                pd.Series(r1, name="r1"),
+                pd.Series(r2, name="r2"),
+                pd.Series(r3, name="r3"),
+                pd.Series(r4, name="r4"),
+                pd.Series(r5, name="r5"),
+            ],
+            axis=1,
+        )
+
+# Pivot Woodie
+# TODO
+def pivot_woodie(data: DataFrame) -> DataFrame:
+    df_ = data.shift()
+    pivot = pd.Series((df_['high']+df_['low']+2*data['open'])/4, name="pivot")
+    
+    s1 =  2*pivot-df_['high']
+    s2 = pivot - (df_["high"] - df_["low"])
+    s3 = df_["low"] - (2 * (pivot - df_["high"]))
+    s4 =  s3 - (df_["high"] - df_["low"])
+   
+    
+
+    r1 = 2*pivot-df_['low']
+    r2 = pivot + (df_["high"] - df_["low"])
+    r3 =df_["high"] + (2 * (pivot - df_["low"]))
+    r4 =  r3 + (df_["high"] - df_["low"])
+   
+    return pd.concat(
+            [
+                pivot,
+                pd.Series(s1, name="s1"),
+                pd.Series(s2, name="s2"),
+                pd.Series(s3, name="s3"),
+                pd.Series(s4, name="s4"),
+                pd.Series(r1, name="r1"),
+                pd.Series(r2, name="r2"),
+                pd.Series(r3, name="r3"),
+                pd.Series(r4, name="r4"),
+                            ],
+            axis=1,
+        )
+
+# PPO
+# TODO
+def ppo(data: DataFrame,period_fast: int = 12,period_slow: int = 26,
+    signal: int = 9,column: str = "close",
+      adjust: bool = True,) -> DataFrame:
+
+    EMA_fast = pd.Series(
+        data[column].ewm(ignore_na=False, span=period_fast, adjust=adjust).mean(),
+        name="EMA_fast",
+    )
+    EMA_slow = pd.Series(
+        data[column].ewm(ignore_na=False, span=period_slow, adjust=adjust).mean(),
+        name="EMA_slow",
+    )
+    PPO = pd.Series(((EMA_fast - EMA_slow) / EMA_slow) * 100, name="PPO")
+    PPO_signal = pd.Series(
+        PPO.ewm(ignore_na=False, span=signal, adjust=adjust).mean(), name="SIGNAL"
+    )
+    PPO_histo = pd.Series(PPO - PPO_signal, name="HISTO")
+
+    return pd.concat([PPO, PPO_signal, PPO_histo], axis=1)
+
+# ---------------------> R <------------------------
+
+# Relative Strength Index (RSI)
+# EMA of up and down gives gain and loss
+# Relative Strength Index is gain / loss
+def rsi(data: DataFrame, period: int = 14,column: str = "close",
+    adjust: bool = True,) -> Series:
+    delta = data[column].diff()
+    up, down = delta.copy(), delta.copy()
+    up[up < 0] = 0
+    down[down > 0] = 0
+    _gain = up.ewm(alpha=1.0 / period, adjust=adjust).mean()
+    _loss = down.abs().ewm(alpha=1.0 / period, adjust=adjust).mean()
+
+    RS = _gain / _loss
+    return pd.Series(100 - (100 / (1 + RS)), 
+                     name=f'{period} period RSI'
+                    )
+
+# Rate of Change (ROC)
+def roc(data: DataFrame, period: int = 12, column: str = "close") -> Series:
+    return pd.Series(
+        (data[column].diff(period) / data[column].shift(period)) * 100, 
+        name="ROC"
+    )
 
 
 # ---------------------> S <------------------------
@@ -223,7 +504,6 @@ def ssma(data,period: int = 10,column: str ='close',adjust: bool = True) -> Seri
 
 # Triple Exponential Moving Average (TEMA)
 # 3 * EWMA - ewm(ewm(ewm(data))) i.e. 3 * ewma - ewm of ewm of ewm of data
-
 def tema(data,period: int = 10,column: str ='close',adjust: bool = True) -> Series:
     triple_ema = 3 * ema(data,period)
     ema_ema_ema = (
@@ -245,6 +525,19 @@ def tp(data: DataFrame) -> Series:
             (data["high"] + data["low"] + data["close"]) / 3,
              name="TP"
         )
+
+# True Range (TR)
+# maximum of three price ranges i.e TR1, TR2, TR2
+def tr(data: DataFrame) -> Series:
+        TR1 = pd.Series(data["high"] - data["low"]).abs()
+        TR2 = pd.Series(data["high"] - data["close"].shift()).abs()
+        TR3 = pd.Series(data["close"].shift() - data["low"]).abs()
+        _TR = pd.concat([TR1, TR2, TR3], axis=1)
+        _TR["TR"] = _TR.max(axis=1)
+        return pd.Series(_TR["TR"], 
+                         name="TR"
+                        )
+
 
 # Triangular Moving Average (TRIMA) or (TMA)
 # sum of SMA / period
@@ -276,7 +569,6 @@ def trix(data,period: int = 10,adjust: bool = True,column: str ='close') -> Seri
 # cummulative sum = sum of (volume ratio * data) for n period
 # cummulative Division = sum of (volume ratio) for n period
 # VAMA = cummulative sum / cummulative Division
-
 def vama(data,period: int = 10,column: str ='close') -> Series:
     vp = data[column]*data['volume']
     volsum = data["volume"].rolling(window=period,min_periods=1).mean()
@@ -295,6 +587,36 @@ def vwap(data: DataFrame) -> Series:
             ((data["volume"] * tp(data)).cumsum()) / data["volume"].cumsum(),
             name="VWAP",
         )
+
+# Volume Weighted Moving average convergence divergence(VWMACD)
+# difference vwma of fast and slow
+def vw_macd(data: DataFrame,period_fast: int = 12,period_slow: int = 26,
+        signal: int = 9,column: str = "close",
+        adjust: bool = True,
+    ) -> DataFrame:
+
+    MACD = pd.Series(vwma(data,period=period_fast)-vwma(data,period=period_slow), 
+                     name="VW MACD")
+    print(MACD)
+   
+    MACD_signal = pd.Series(
+        MACD.ewm(span=signal, adjust=adjust).mean(),
+        name="MACD Signal"
+    )
+
+    return pd.concat([MACD, MACD_signal], axis=1)
+
+# Volume Weighted Moving Average (VWMA)
+# sum of (data * volume) for n period divided by
+# sum of volume for n period
+def vwma(data: DataFrame,period: int = 20,column: str = "close",
+        adjust: bool = True,
+    ) -> DataFrame:
+    
+    cv=(data[column]*data['volume']).rolling(window=period,min_periods=1).sum()
+    v=data['volume'].rolling(window=period,min_periods=1).sum()
+    
+    return pd.Series(cv/v,name='VWMA')
 
 
 # ---------------------> W <------------------------
@@ -337,3 +659,4 @@ def zlema(data,period: int = 26, adjust: bool = True,
             name=f'{period}_ZLEMA'
         )
     return zlema
+
