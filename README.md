@@ -47,3 +47,8 @@ Statistic Indicator is a collection of 50+ stock analysis indicators that are be
 | Volume Weighted Moving Average (VWMA) | vwma() | data , period, column, adjust | Series |
 | Weighted Moving Average (WMA) | wma() | data , period, column | Series |
 | Zero Lag Exponential Moving Average (ZLEMA) | zlema() | data , period, adjust, column | Series |
+
+## Dependencies
+* Python
+* Pandas
+* Numpy
