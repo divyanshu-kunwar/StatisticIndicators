@@ -19,6 +19,57 @@ def atr(data: DataFrame, period: int = 14) -> Series:
             name=f'{period}  ATR'
         )
 
+# [0] __ Adaptive Price Zone (APZ)
+# TODO
+def apz(data: DataFrame,period: int = 21,dev_factor: int = 2,
+    MA: Series = None,adjust: bool = True,) -> DataFrame:
+    if not isinstance(MA, pd.Series):
+        MA = dema(data, period)
+    price_range = pd.Series(
+        (data["high"] - data["low"]).ewm(span=period, adjust=adjust).mean()
+    )
+    volatility_value = pd.Series(
+        price_range.ewm(span=period, adjust=adjust).mean(), name="vol_val"
+    )
+
+    upper_band = pd.Series((volatility_value * dev_factor) + MA, name="UPPER")
+    lower_band = pd.Series(MA - (volatility_value * dev_factor), name="LOWER")
+
+    return pd.concat([upper_band, lower_band], axis=1)
+
+
+# ------------------> B <------------------------
+
+# [0] __ Bollinger Bands (BBANDS)
+# TODO
+def bbands(data: DataFrame,period: int = 20,MA: Series = None,
+        column: str = "close",std_multiplier: float = 2,) -> DataFrame:
+
+        std = data[column].rolling(window=period).std()
+
+        if not isinstance(MA, pd.core.series.Series):
+            middle_band = pd.Series(sma(data, period), name="BB_MIDDLE")
+        else:
+            middle_band = pd.Series(MA, name="BB_MIDDLE")
+
+        upper_bb = pd.Series(middle_band + (std_multiplier * std), name="BB_UPPER")
+        lower_bb = pd.Series(middle_band - (std_multiplier * std), name="BB_LOWER")
+
+        return pd.concat([upper_bb, middle_band, lower_bb], axis=1)
+
+# [0] __ Bollinger Bands Width (BBWidth)
+# TODO
+def bbwidth(
+         data: DataFrame, period: int = 20, MA: Series = None, column: str = "close"
+    ) -> Series:
+        
+
+        BB = bbands(data, period, MA, column)
+
+        return pd.Series(
+            (BB["BB_UPPER"] - BB["BB_LOWER"]) / BB["BB_MIDDLE"],
+            name="{0} period BBWITH".format(period),
+        )
 
 # ------------------> D <------------------------
 
@@ -33,6 +84,28 @@ def dema(data,period: int = 10,column: str ='close',adjust: bool = True) -> Seri
         name = f'{period}_DEMA'
     )
 
+# [0] __ Directional Movement Index (DMI)
+# TODO
+def dmi(data: DataFrame, column: str = "close", adjust: bool = True) -> Series:
+    def _get_time(close):
+        sd = close.rolling(5).std()
+        asd = sd.rolling(10).mean()
+        v = sd / asd
+        t = 14 / v.round()
+        t[t.isna()] = 0
+        t = t.map(lambda x: int(min(max(x, 5), 30)))
+        return t
+    def _dmi(index):
+        time = t.iloc[index]
+        if (index - time) < 0:
+            subset = data.iloc[0:index]
+        else:
+            subset = data.iloc[(index - time) : index]
+        return rsi(subset, period=time, adjust=adjust).values[-1]
+    dates = Series(data.index)
+    periods = Series(range(14, len(dates)), index=dates.index[14:].values)
+    t = _get_time(data[column])
+    return periods.map(lambda x: _dmi(x))
 
 # ------------------> E <------------------------
 
@@ -52,6 +125,26 @@ def er(data,period: int = 10,column: str ='close') -> Series:
     return pd.Series(change / volatility, 
         name=f'{period}_ER'
     )
+
+# [0] __ TODO (EVSTC)
+# TODO
+def evstc(data: DataFrame,period_fast: int = 12,period_slow: int = 30,
+        k_period: int = 10,d_period: int = 3,adjust: bool = True) -> Series:
+        
+        ema_slow = evwma(data, period_slow)
+        ema_fast = evwma(data, period_fast)
+
+        macd = ema_fast - ema_slow
+
+        STOK = pd.Series((
+            (macd - macd.rolling(window=k_period).min())
+            / (macd.rolling(window=k_period).max() - macd.rolling(window=k_period).min())
+            ) * 100)
+
+        STOD = STOK.rolling(window=d_period).mean()
+        STOD_DoubleSmooth = STOD.rolling(window=d_period).mean()
+
+        return pd.Series(STOD_DoubleSmooth, name="{0} period EVSTC".format(k_period))
 
 # [0] __ Elastic Volume Weighted Moving Average (EVWMA)
 # x is ((volume sum for n period) - volume ) divided by (volume sum for n period)
@@ -94,6 +187,25 @@ def ev_macd(data: DataFrame,period_fast: int = 20,period_slow: int = 40,
 
 # ------------------> F <------------------------
 
+# [0] __  Fisher Transform
+# TODO
+def fish(data: DataFrame, period: int = 10, adjust: bool = True) -> Series:
+    from numpy import log, seterr
+
+    seterr(divide="ignore")
+
+    med = (data["high"] + data["low"]) / 2
+    ndaylow = med.rolling(window=period).min()
+    ndayhigh = med.rolling(window=period).max()
+    raw = (2 * ((med - ndaylow) / (ndayhigh - ndaylow))) - 1
+    smooth = raw.ewm(span=5, adjust=adjust).mean()
+    _smooth = smooth.fillna(0)
+
+    return pd.Series(
+        (log((1 + _smooth) / (1 - _smooth))).ewm(span=3, adjust=adjust).mean(),
+        name="{0} period FISH.".format(period),
+    )
+
 # [0] __ Fractal Adaptive Moving Average (FRAMA)
 # TODO
 def FRAMA(data: DataFrame, period: int = 16, batch: int=10) -> Series:
@@ -129,6 +241,29 @@ def FRAMA(data: DataFrame, period: int = 16, batch: int=10) -> Series:
         name= f'{period} FRAMA'
         )
 
+# [0] __ Finite Volume Element (FVE)
+# TODO
+def fve(data: DataFrame, period: int = 22, factor: int = 0.3) -> Series:
+        hl2 = (data["high"] + data["low"]) / 2
+        tp_ = tp(data)
+        smav = data["volume"].rolling(window=period).mean()
+        mf = pd.Series((data["close"] - hl2 + tp_.diff()), name="mf")
+        _mf = pd.concat([data["close"], data["volume"], mf], axis=1)
+
+        def vol_shift(row):
+
+            if row["mf"] > factor * row["close"] / 100:
+                return row["volume"]
+            elif row["mf"] < -factor * row["close"] / 100:
+                return -row["volume"]
+            else:
+                return 0
+
+        _mf["vol_shift"] = _mf.apply(vol_shift, axis=1)
+        _sum = _mf["vol_shift"].rolling(window=period).sum()
+
+        return pd.Series((_sum / smav) / period * 100)
+
 
 # ------------------> H <------------------------
 
@@ -146,13 +281,82 @@ def hma(data, period: int = 16) -> Series:
 
     return pd.Series(hma, name=f'{period}_HMA')
 
+# ------------------> I <------------------------
+
+# [0] __ Ichimoku Cloud
+# TODO
+def ichimoku(data: DataFrame,tenkan_period: int = 9,kijun_period: int = 26,
+    senkou_period: int = 52,chikou_period: int = 26,) -> DataFrame:
+    tenkan_sen = pd.Series(
+        (
+            data["high"].rolling(window=tenkan_period).max()
+            + data["low"].rolling(window=tenkan_period).min()
+        )
+        / 2,
+        name="TENKAN",
+    )  ## conversion line
+
+    kijun_sen = pd.Series(
+        (
+            data["high"].rolling(window=kijun_period).max()
+            + data["low"].rolling(window=kijun_period).min()
+        )
+        / 2,
+        name="KIJUN",
+    )  ## base line
+
+    senkou_span_a = pd.Series(
+        ((tenkan_sen + kijun_sen) / 2), name="senkou_span_a"
+    ) .shift(kijun_period) ## Leading span
+
+    senkou_span_b = pd.Series(
+        (
+            (
+                data["high"].rolling(window=senkou_period).max()
+                + data["low"].rolling(window=senkou_period).min()
+            )
+            / 2
+        ),
+        name="SENKOU",
+    ).shift(kijun_period)
+
+    chikou_span = pd.Series(
+        data["close"].shift(-chikou_period),
+        name="CHIKOU",
+    )
+
+    return pd.concat(
+        [tenkan_sen, kijun_sen, senkou_span_a, senkou_span_b, chikou_span], axis=1
+    )
+
+# [0] __ Inverse Fisher Transform (IFTRSI)
+# TODO
+def ift_rsi(data: DataFrame,column: str = "close",rsi_period: int = 5,
+           wma_period: int = 9,) -> Series:
+    v1 = pd.Series(0.1 * (rsi(data, rsi_period) - 50), name="v1")
+    d = (wma_period * (wma_period + 1)) / 2 
+    weights = np.arange(1, wma_period + 1)
+
+    def linear(w):
+        def _compute(x):
+            return (w * x).sum() / d
+
+        return _compute
+
+    _wma = v1.rolling(wma_period, min_periods=wma_period)
+    v2 = _wma.apply(linear(weights), raw=True)
+
+    return pd.Series(
+        ((v2 ** 2 - 1) / (v2 ** 2 + 1)), 
+        name="IFT_RSI"
+    )
+
 
 # ------------------> K <------------------------
 
 # [0] __ Kaufman's Adaptive Moving Average (KAMA)
 # first KAMA is SMA
 # Current KAMA = Previous KAMA + smoothing_constant * (Price - Previous KAMA)
-
 def kama(data,er_: int = 10,ema_fast: int = 2,
          ema_slow: int = 30,period: int = 20,
          column: str ='close') -> Series:
@@ -182,6 +386,23 @@ def kama(data,er_: int = 10,ema_fast: int = 2,
 
     return sma['KAMA']
 
+# [0] __ Keltner Channels (KC)
+# TODO
+def kc(ohlc: DataFrame,period: int = 20,atr_period: int = 10,
+       MA: Series = None,kc_mult: float = 2,) -> DataFrame:
+
+        if not isinstance(MA, pd.core.series.Series):
+            middle = pd.Series(ema(ohlc, period), name="KC_MIDDLE")
+        else:
+            middle = pd.Series(MA, name="KC_MIDDLE")
+
+        up = pd.Series(middle + (kc_mult * atr(ohlc, atr_period)), name="KC_UPPER")
+        down = pd.Series(
+            middle - (kc_mult * atr(ohlc, atr_period)), name="KC_LOWER"
+        )
+
+        return pd.concat([up, down], axis=1)
+  
 
 # ------------------> M <------------------------
 
@@ -211,6 +432,19 @@ def macd(data,period_fast: int = 12,period_slow: int = 26,
         [DIFF, MACD, MACD_signal ],
         axis=1
     )
+
+# [0] __ Moving Standard Deviation (MSD)
+# Standard deviation of a given period for the column passed as arguement
+def msd(data: DataFrame, period: int = 21, column: str = "close") -> Series:
+        return pd.Series(data[column].rolling(period).std(), name="MSD")
+
+# Momentum Breakout Bands (MOBO)
+# TODO
+def mobo(data: DataFrame,period: int = 10,std_multiplier: float = 0.8,
+         column: str = "close",) -> DataFrame:
+
+        BB = bbands(data, period=10, std_multiplier=0.8, column=column)
+        return BB
 
 # [0] __ Market momentum (MOM)
 def mom(data: DataFrame, period: int = 10, column: str = "close") -> Series:
@@ -474,6 +708,48 @@ def roc(data: DataFrame, period: int = 12, column: str = "close") -> Series:
 
 # ------------------> S <------------------------
 
+# [0] __ Stop And Reverse (SAR) 
+# The indicator is below prices when prices are rising and above 
+# prices when prices are falling.
+# TODO
+def sar(data: DataFrame, af: int = 0.02, amax: int = 0.2) -> Series:
+        
+        high, low = data.high, data.low
+        # Starting values
+        sig0, xpt0, af0 = True, high[0], af
+        _sar = [low[0] - (high - low).std()]
+
+        for i in range(1, len(data)):
+            sig1, xpt1, af1 = sig0, xpt0, af0
+
+            lmin = min(low[i - 1], low[i])
+            lmax = max(high[i - 1], high[i])
+
+            if sig1:
+                sig0 = low[i] > _sar[-1]
+                xpt0 = max(lmax, xpt1)
+            else:
+                sig0 = high[i] >= _sar[-1]
+                xpt0 = min(lmin, xpt1)
+
+            if sig0 == sig1:
+                sari = _sar[-1] + (xpt1 - _sar[-1]) * af1
+                af0 = min(amax, af1 + af)
+
+                if sig0:
+                    af0 = af0 if xpt0 > xpt1 else af1
+                    sari = min(sari, lmin)
+                else:
+                    af0 = af0 if xpt0 < xpt1 else af1
+                    sari = max(sari, lmax)
+            else:
+                af0 = af
+                sari = xpt0
+
+            _sar.append(sari)
+
+        return pd.Series(_sar, index=data.index)
+
 # [0] __ Simple moving average (SMA) or moving average (MA)
 # Average of prev n day prices
 def sma(data,period: int = 10,column: str ='close') -> Series:
@@ -498,6 +774,54 @@ def ssma(data,period: int = 10,column: str ='close',adjust: bool = True) -> Seri
         min_periods=0, adjust=adjust).mean(),
         name = f'{period}_SSMA'
     )
+
+# [0] __ The Schaff Trend Cycle (Oscillator) (STC)
+# TODO
+def stc(data: DataFrame,period_fast: int = 23,period_slow: int = 50,k_period: int = 10,
+        d_period: int = 3,column: str = "close",adjust: bool = True) -> Series:
+        EMA_fast = pd.Series(
+            data[column].ewm(ignore_na=False, span=period_fast, adjust=adjust).mean(),
+            name="EMA_fast",
+        )
+
+        EMA_slow = pd.Series(
+            data[column].ewm(ignore_na=False, span=period_slow, adjust=adjust).mean(),
+            name="EMA_slow",
+        )
+
+        MACD = pd.Series((EMA_fast - EMA_slow), name="MACD")
+
+        STOK = pd.Series((
+            (MACD - MACD.rolling(window=k_period).min())
+            / (MACD.rolling(window=k_period).max() - MACD.rolling(window=k_period).min())
+            ) * 100)
+
+        STOD = STOK.rolling(window=d_period).mean()
+        STOD_DoubleSmooth = STOD.rolling(window=d_period).mean()  # "double smoothed"
+        return pd.Series(STOD_DoubleSmooth, name="{0} period STC".format(k_period))
+
+# [0] __ (SQZMI)
+# TODO
+def sqzmi(data: DataFrame, period: int = 20, MA: Series = None) -> DataFrame:
+
+    if not isinstance(MA, pd.core.series.Series):
+        ma = pd.Series(sma(data, period))
+    else:
+        ma = None
+
+    bb = bbands(data, period=period, MA=ma)
+    kc_ = kc(data, period=period, kc_mult=1.5)
+    comb = pd.concat([bb, kc_], axis=1)
+
+    def sqz_on(row):
+        if row["BB_LOWER"] > row["KC_LOWER"] and row["BB_UPPER"] < row["KC_UPPER"]:
+            return True
+        else:
+            return False
+
+    comb["SQZ"] = comb.apply(sqz_on, axis=1)
+
+    return pd.Series(comb["SQZ"], name="{0} period SQZMI".format(period))
 
 
 # ------------------> T <------------------------
@@ -580,6 +904,18 @@ def vama(data,period: int = 10,column: str ='close') -> Series:
         name=f'{period}_VAMA'
     )
 
+# [0] __ Volume Price Trend (VPT)
+# TODO
+def vpt(data: DataFrame) -> Series:
+        hilow = (data["high"] - data["low"]) * 100
+        openclose = (data["close"] - data["open"]) * 100
+        vol = data["volume"] / hilow
+        spreadvol = (openclose * vol).cumsum()
+
+        vpt = spreadvol + spreadvol
+
+        return pd.Series(vpt, name="VPT")
+
 # [0] __ Volume Weighted Average Price (VWAP)
 # cummulative sum of (data) divided by cummulative sum of volume
 def vwap(data: DataFrame) -> Series:
@@ -618,8 +954,100 @@ def vwma(data: DataFrame,period: int = 20,column: str = "close",
     
     return pd.Series(cv/v,name='VWMA')
 
+# ------------------> V <------------------------
+
+# [0] __ Volume Flow Indicator (VFI)
+# TODO
+def vfi(data: DataFrame,period: int = 130,smoothing_factor: int = 3,factor: int = 0.2,
+        vfactor: int = 2.5,adjust: bool = True,) -> Series:
+        typical = tp(data)
+        inter = typical.apply(np.log).diff()
+        vinter = inter.rolling(window=30).std()
+        cutoff = pd.Series(factor * vinter * data["close"], name="cutoff")
+        price_change = pd.Series(typical.diff(), name="pc")  
+        mav = pd.Series(
+            data["volume"].rolling(center=False, window=period).mean(), name="mav",
+        )
+
+        _va = pd.concat([data["volume"], mav.shift()], axis=1)
+        _mp = pd.concat([price_change, cutoff], axis=1)
+        _mp.fillna(value=0, inplace=True)
+
+        def _vol_added(row):
+            if row["volume"] > vfactor * row["mav"]:
+                return vfactor * row["mav"]
+            else:
+                return row["volume"]
+
+        added_vol = _va.apply(_vol_added, axis=1)
+
+        def _multiplier(row):
+            if row["pc"] > row["cutoff"]:
+                return 1
+            elif row["pc"] < 0 - row["cutoff"]:
+                return -1
+            else:
+                return 0
+
+        multiplier = _mp.apply(_multiplier, axis=1)
+        raw_sum = (multiplier * added_vol).rolling(window=period).sum()
+        raw_value = raw_sum / mav.shift()
+
+        vfi = pd.Series(
+            raw_value.ewm(
+                ignore_na=False,
+                min_periods=smoothing_factor - 1,
+                span=smoothing_factor,
+                adjust=adjust,
+            ).mean(),
+            name="VFI",
+        )
+
+        return vfi
+
+# [0] __ Value chart (VC)
+# TODO
+def vc(data: DataFrame, period: int = 5) -> DataFrame:
+       
+        float_axis = ((data.high + data.low) / 2).rolling(window=period).mean()
+        vol_unit = (data.high - data.low).rolling(window=period).mean() * 0.2
+
+        value_chart_high = pd.Series((data.high - float_axis) / vol_unit, name="Value Chart High")
+        value_chart_low = pd.Series((data.low - float_axis) / vol_unit, name="Value Chart Low")
+        value_chart_close = pd.Series((data.close - float_axis) / vol_unit, name="Value Chart Close")
+        value_chart_open = pd.Series((data.open - float_axis) / vol_unit, name="Value Chart Open")
+
+        return pd.concat([value_chart_high, value_chart_low, value_chart_close, value_chart_open], axis=1)
 
 # ------------------> W <------------------------
+
+# [0] __ williams Fractal
+# TODO
+def williams_fractal(data: DataFrame, period: int = 2) -> DataFrame:
+        def is_bullish_fractal(x):
+            if x[period] == min(x):
+                return True
+            return False
+
+        def is_bearish_fractal(x):
+            if x[period] == max(x):
+                return True
+            return False
+
+        window_size = period * 2 + 1
+        bearish_fractals = pd.Series(
+            data.high.rolling(window=window_size, center=True).apply(
+                is_bearish_fractal, raw=True
+            ),
+            name="BearishFractal",
+        )
+        bullish_fractals = pd.Series(
+            data.low.rolling(window=window_size, center=True).apply(
+                is_bullish_fractal, raw=True
+            ),
+            name="BullishFractal",
+        )
+        return pd.concat([bearish_fractals, bullish_fractals], axis=1)
 
 # [0] __ Weighted Moving Average (WMA)
 # add weight to moving average
@@ -641,6 +1069,21 @@ def wma(data, period: int = 9,
         name=f'{period}_WMA'
     )
 
+# [0] __ Wave Trend Oscillator (WTO)
+# TODO
+def wto(data: DataFrame,channel_length: int = 10,average_length: int = 21,adjust: bool = True,) -> DataFrame:
+
+    ap = tp(data)
+    esa = ap.ewm(span=average_length, adjust=adjust).mean()
+    d = pd.Series(
+        (ap - esa).abs().ewm(span=channel_length, adjust=adjust).mean(), name="d"
+    )
+    ci = (ap - esa) / (0.015 * d)
+
+    wt1 = pd.Series(ci.ewm(span=average_length, adjust=adjust).mean(), name="WT1.")
+    wt2 = pd.Series(wt1.rolling(window=4).mean(), name="WT2.")
+
+    return pd.concat([wt1, wt2], axis=1)
 
 # ------------------> Z <------------------------
 
